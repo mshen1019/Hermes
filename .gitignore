@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+
+# Logs and screenshots
+logs/
+
+# Test directories
+test_tool/
+test_report/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+
+# Profiles with personal info (keep structure, ignore personal data)
+config/profiles/*/profile.yaml
+config/profiles/*/resume.pdf
+config/profiles/*/jobs/*.json
+
+# Keep default profile as template
+!config/profiles/default/profile.yaml
+!config/profiles/default/jobs/jobs.json
+
+# Environment
+.env

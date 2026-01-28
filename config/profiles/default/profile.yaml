@@ -1,0 +1,119 @@
+# =============================================================================
+# Hermes - User Profile Configuration
+# =============================================================================
+# This is your personal profile for job applications.
+# Fill in your information below. Fields marked with comments are optional.
+#
+# To use this profile:
+#   1. Copy this folder and rename it (e.g., "John" or "MyProfile")
+#   2. Edit the profile.yaml with your real information
+#   3. Place your resume PDF in the same folder (or specify path below)
+#   4. Run: python run.py --profile YourProfileName
+# =============================================================================
+
+personal:
+  first_name: "John"
+  last_name: "Doe"
+  full_name: "John Doe"
+  email: "john.doe@example.com"
+  phone: "555-123-4567"
+  linkedin: "https://www.linkedin.com/in/johndoe"
+  github: "https://github.com/johndoe"           # Optional
+  portfolio: ""                                   # Optional - your portfolio URL
+
+location:
+  address: "123 Main Street"
+  city: "San Francisco"
+  state: "CA"
+  zip_code: "94102"
+  country: "United States"
+  willing_to_relocate: true
+
+work_authorization:
+  authorized_to_work: true
+  require_sponsorship: false
+  visa_status: "Green Card"  # Options: "US Citizen", "Green Card", "H1B", "OPT", etc.
+
+experience:
+  years_of_experience: 5
+  current_company: "Acme Corporation"
+  current_title: "Software Engineer"
+
+education:
+  highest_degree: "Bachelor's"  # Options: "High School", "Associate", "Bachelor's", "Master's", "PhD"
+  field_of_study: "Computer Science"
+  university: "University of California, Berkeley"
+  graduation_year: 2019
+
+resume:
+  # Option 1: Place resume.pdf in this profile folder (auto-detected)
+  # Option 2: Specify absolute path below
+  path: "/Users/mingshen/workspace/Hermes/config/profiles/default/resume/defaul_resume.pdf"  # e.g., "/Users/johndoe/Documents/resume.pdf"
+
+salary:
+  expected_salary: ""           # Optional - e.g., "120,000"
+  salary_range_min: ""          # Optional - e.g., "100,000"
+  salary_range_max: ""          # Optional - e.g., "140,000"
+  currency: "USD"
+
+availability:
+  start_date: "2 weeks"         # e.g., "Immediately", "2 weeks", "1 month"
+  available_immediately: false
+
+# Default answers for common questions
+default_answers:
+  how_did_you_hear: "LinkedIn"  # How you found the job posting
+  referral_source: ""           # Name of referrer if applicable
+
+# =============================================================================
+# EEOC/Diversity (Optional)
+# =============================================================================
+# These fields are legally voluntary. You can:
+# - Fill them with your preferences
+# - Leave blank to skip
+# - Use "Decline to answer" / "Prefer not to say"
+#
+# The system will try to select matching options, or fall back to
+# "Decline to answer" options if available.
+# =============================================================================
+diversity:
+  gender: "Female"                    # Options: "Male", "Female", "Non-binary", "Prefer not to say"
+  race: "Hispanic or Latino"                      # For explicit "Race:" questions (e.g., "Asian", "White", "Black")
+  hispanic_latino: "Yes"           # For "Are you Hispanic/Latino?" (Yes/No)
+  veteran_status: "No"            # Options: "Yes", "No", "Prefer not to say"
+  disability_status: "No"         # Options: "Yes", "No", "Prefer not to say"
+
+# =============================================================================
+# Custom Q&A - Teach Hermes Your Answers
+# =============================================================================
+# When Hermes encounters questions it can't answer from your profile,
+# it saves them to 'pending'. Fill in the 'answer' field and they'll
+# be moved to 'answered' on the next run.
+#
+# You can also pre-fill common questions in 'answered' section.
+# =============================================================================
+custom_answers:
+  answered:
+    # Example: Common yes/no questions
+    - question: "Have you ever worked for this company"
+      answer: "No"
+      keywords: ["worked for", "ever worked", "previously worked", "employed by"]
+
+    - question: "Are you subject to any non-compete agreement"
+      answer: "No"
+      keywords: ["non-compete", "noncompete", "non-solicitation"]
+
+    - question: "Are you willing to undergo a background check"
+      answer: "Yes"
+      keywords: ["background check", "background screening"]
+
+    - question: "Are you comfortable working remotely"
+      answer: "Yes"
+      keywords: ["remote", "work from home"]
+
+    - question: "Are you willing to relocate"
+      answer: "Yes"
+      keywords: ["relocate", "relocation"]
+
+  # Unanswered questions will appear here after running Hermes
+  pending: []
