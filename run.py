@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from hermes.ats_detector import ATSType, detect_ats
@@ -310,6 +311,53 @@ async def find_and_click_submit_button(page: Page) -> bool:
     return False
 
 
+async def wait_for_url_change(
+    page: Page,
+    initial_url: str,
+    timeout_seconds: int = 300,
+    check_interval: int = 2,
+) -> bool:
+    """
+    Wait for URL to change (indicating user clicked Submit).
+
+    Args:
+        page: Playwright page object
+        initial_url: The URL before submission
+        timeout_seconds: Maximum time to wait (default: 5 minutes)
+        check_interval: How often to check URL (default: 2 seconds)
+
+    Returns:
+        True if URL changed, False if timeout
+    """
+    elapsed = 0
+    console.print("[dim]Waiting for you to click Submit in Chrome...[/dim]")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Watching for submission...", total=None)
+
+        while elapsed < timeout_seconds:
+            current_url = page.url
+            if current_url != initial_url:
+                progress.update(task, description="[green]✓ Submission detected![/green]")
+                console.print(f"[green]✓[/green] Detected submission (URL changed)")
+                return True
+
+            await asyncio.sleep(check_interval)
+            elapsed += check_interval
+
+            # Update progress message every 30 seconds
+            if elapsed % 30 == 0:
+                minutes_left = (timeout_seconds - elapsed) // 60
+                progress.update(task, description=f"Waiting... ({minutes_left}m remaining)")
+
+    console.print("[yellow]⚠[/yellow] Timeout waiting for submission")
+    return False
+
+
 async def process_job(
     browser: BrowserManager,
     profile: Profile,
@@ -318,9 +366,14 @@ async def process_job(
     logger: ApplicationLogger,
     job: dict,
     auto_submit: bool = False,
+    browser_confirm_only: bool = False,
 ) -> bool:
     """
     Process a single job application.
+
+    Args:
+        browser_confirm_only: If True, skip terminal confirmation and wait for
+                             user to submit in browser (detected via URL change)
 
     Returns True if successful, False otherwise.
     """
@@ -493,20 +546,61 @@ async def process_job(
 
         # Human confirmation
         if not auto_submit:
-            confirmed = review_and_confirm(filled_fields, job_title, company_name)
+            if browser_confirm_only:
+                # New mode: Show summary and wait for browser submission
+                ui.display_summary(filled_fields, job_title, company_name)
+                console.print()
+                console.print(Panel(
+                    f"[bold green]✓ Form filled successfully![/bold green]\n\n"
+                    f"[bold]Next steps:[/bold]\n"
+                    f"1. Switch to Chrome window\n"
+                    f"2. Review the filled form\n"
+                    f"3. Click the [bold cyan]Submit[/bold cyan] button\n\n"
+                    f"[dim]The script will automatically detect your submission and move to the next job.[/dim]",
+                    style="blue",
+                    title=f"{company_name} - {job_title}",
+                ))
 
-            if not confirmed:
-                ui.display_info("Application cancelled by user")
-                logger.skip_application("User cancelled")
-                return False
+                # Capture URL before waiting
+                current_url = await browser.get_current_url()
+                await logger.capture_screenshot(browser.page, "pre_submit")
 
-        logger.update_status(ApplicationStatus.CONFIRMED)
+                # Wait for URL to change (user clicked Submit)
+                submitted = await wait_for_url_change(browser.page, current_url)
 
-        # Capture pre-submit screenshot
-        await logger.capture_screenshot(browser.page, "pre_submit")
+                if submitted:
+                    await asyncio.sleep(2)  # Wait for submission to process
+                    await logger.capture_screenshot(browser.page, "after_submit")
+                    logger.update_status(ApplicationStatus.SUBMITTED)
+                    console.print(f"[green]✓[/green] Application submitted for {company_name} - {job_title}")
+                else:
+                    console.print(f"[yellow]⚠[/yellow] Timeout: Assuming application was submitted")
+                    logger.update_status(ApplicationStatus.SUBMITTED)
 
-        if auto_submit:
-            # Fully automated mode: auto-click submit button
+            else:
+                # Old mode: Terminal confirmation
+                confirmed = review_and_confirm(filled_fields, job_title, company_name)
+
+                if not confirmed:
+                    ui.display_info("Application cancelled by user")
+                    logger.skip_application("User cancelled")
+                    return False
+
+                logger.update_status(ApplicationStatus.CONFIRMED)
+
+                # Capture pre-submit screenshot
+                await logger.capture_screenshot(browser.page, "pre_submit")
+
+                # Human review mode: let human click submit manually
+                ui.display_success(
+                    f"Form filled for {company_name} - {job_title}\n"
+                    "Review the browser and submit manually when ready."
+                )
+        else:
+            # Auto-pilot mode: auto-click submit button
+            logger.update_status(ApplicationStatus.CONFIRMED)
+            await logger.capture_screenshot(browser.page, "pre_submit")
+
             console.print("[dim]Auto-submit enabled. Looking for submit button...[/dim]")
             submitted = await find_and_click_submit_button(browser.page)
             if submitted:
@@ -521,12 +615,6 @@ async def process_job(
                     f"Form filled for {company_name} - {job_title}\n"
                     "Could not find submit button. Please submit manually."
                 )
-        else:
-            # Human review mode: let human click submit manually
-            ui.display_success(
-                f"Form filled for {company_name} - {job_title}\n"
-                "Review the browser and submit manually when ready."
-            )
 
         logger.complete_application(success=True)
         return True
